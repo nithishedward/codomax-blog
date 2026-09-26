@@ -309,6 +309,6 @@ app.use((error, req, res, next) => {
 // Start Server
 // ===============================
 
-app.listen(PORT, () => {
-  console.log(`DevBlog backend running at http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`DevBlog backend running on port ${PORT}`);
 });
