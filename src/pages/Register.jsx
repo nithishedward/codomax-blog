@@ -10,6 +10,8 @@ import {
   User,
 } from "lucide-react";
 
+const API_URL = "http://localhost:5000";
+
 function Register() {
   const navigate = useNavigate();
 
@@ -24,6 +26,7 @@ function Register() {
   });
 
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (event) => {
     setForm({
@@ -34,8 +37,10 @@ function Register() {
     setError("");
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+
+    setError("");
 
     if (
       !form.name ||
@@ -62,9 +67,41 @@ function Register() {
       return;
     }
 
-    // Temporary frontend-only registration.
-    // Module 2 will connect this to the Express API.
-    navigate("/dashboard");
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Registration failed.");
+      }
+
+      // Store authentication information
+      localStorage.setItem("devblog_token", data.token);
+      localStorage.setItem("devblog_user", JSON.stringify(data.user));
+
+      // Go to dashboard
+      navigate("/dashboard");
+    } catch (error) {
+      setError(
+        error.message ||
+          "Unable to connect to the backend. Make sure the server is running."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -105,6 +142,7 @@ function Register() {
                   placeholder="Your full name"
                   value={form.name}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -122,6 +160,7 @@ function Register() {
                   placeholder="you@example.com"
                   value={form.email}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -139,12 +178,16 @@ function Register() {
                   placeholder="At least 6 characters"
                   value={form.password}
                   onChange={handleChange}
+                  disabled={loading}
                 />
 
                 <button
                   type="button"
                   className="password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={
+                    showPassword ? "Hide password" : "Show password"
+                  }
                 >
                   {showPassword ? (
                     <EyeOff size={18} />
@@ -170,6 +213,7 @@ function Register() {
                   placeholder="Re-enter your password"
                   value={form.confirmPassword}
                   onChange={handleChange}
+                  disabled={loading}
                 />
 
                 <button
@@ -177,6 +221,11 @@ function Register() {
                   className="password-toggle"
                   onClick={() =>
                     setShowConfirmPassword(!showConfirmPassword)
+                  }
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide password"
+                      : "Show password"
                   }
                 >
                   {showConfirmPassword ? (
@@ -188,8 +237,12 @@ function Register() {
               </div>
             </div>
 
-            <button type="submit" className="auth-submit">
-              Create account
+            <button
+              type="submit"
+              className="auth-submit"
+              disabled={loading}
+            >
+              {loading ? "Creating account..." : "Create account"}
             </button>
           </form>
 

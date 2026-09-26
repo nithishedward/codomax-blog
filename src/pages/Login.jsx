@@ -1,17 +1,27 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  LockKeyhole,
+  Mail,
+} from "lucide-react";
+
+const API_URL = "http://localhost:5000";
 
 function Login() {
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
+
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
 
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (event) => {
     setForm({
@@ -22,8 +32,10 @@ function Login() {
     setError("");
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+
+    setError("");
 
     if (!form.email || !form.password) {
       setError("Please enter your email and password.");
@@ -35,9 +47,40 @@ function Login() {
       return;
     }
 
-    // Temporary frontend-only login.
-    // Module 2 will replace this with the Express API.
-    navigate("/dashboard");
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed.");
+      }
+
+      // Store authentication information
+      localStorage.setItem("devblog_token", data.token);
+      localStorage.setItem("devblog_user", JSON.stringify(data.user));
+
+      // Go to dashboard
+      navigate("/dashboard");
+    } catch (error) {
+      setError(
+        error.message ||
+          "Unable to connect to the backend. Make sure the server is running."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,6 +120,7 @@ function Login() {
                   placeholder="you@example.com"
                   value={form.email}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -89,7 +133,9 @@ function Login() {
                   type="button"
                   className="forgot-link"
                   onClick={() =>
-                    setError("Password recovery will be available in a future version.")
+                    setError(
+                      "Password recovery will be available in a future version."
+                    )
                   }
                 >
                   Forgot password?
@@ -106,6 +152,7 @@ function Login() {
                   placeholder="Enter your password"
                   value={form.password}
                   onChange={handleChange}
+                  disabled={loading}
                 />
 
                 <button
@@ -130,8 +177,12 @@ function Login() {
               <span>Remember me</span>
             </label>
 
-            <button type="submit" className="auth-submit">
-              Sign in
+            <button
+              type="submit"
+              className="auth-submit"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
 

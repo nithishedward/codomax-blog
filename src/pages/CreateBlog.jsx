@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
@@ -9,9 +9,9 @@ import {
   Tag,
 } from "lucide-react";
 
-function CreateBlog() {
-  const navigate = useNavigate();
+const API_URL = "http://localhost:5000";
 
+function CreateBlog() {
   const [form, setForm] = useState({
     title: "",
     category: "Web Development",
@@ -21,6 +21,8 @@ function CreateBlog() {
   });
 
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (event) => {
     setForm({
@@ -29,21 +31,81 @@ function CreateBlog() {
     });
 
     setMessage("");
+    setError("");
   };
 
-  const handleSubmit = (event, type) => {
+  const handlePublish = async (event) => {
     event.preventDefault();
 
+    setMessage("");
+    setError("");
+
     if (!form.title || !form.content) {
-      setMessage("Please enter a blog title and content.");
+      setError("Please enter a blog title and content.");
       return;
     }
 
-    if (type === "draft") {
-      setMessage("Your article has been saved as a draft.");
-    } else {
-      setMessage("Your article has been published successfully.");
+    const token = localStorage.getItem("devblog_token");
+
+    if (!token) {
+      setError("You must be logged in to publish a blog.");
+      return;
     }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${API_URL}/api/blogs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: form.title,
+          content: form.content,
+          category: form.category,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to publish blog.");
+      }
+
+      setMessage("Your article has been published successfully.");
+
+      // Clear article fields after successful publishing
+      setForm({
+        title: "",
+        category: "Web Development",
+        image: "",
+        tags: "",
+        content: "",
+      });
+    } catch (error) {
+      setError(
+        error.message ||
+          "Unable to connect to the backend. Make sure the server is running."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDraft = (event) => {
+    event.preventDefault();
+
+    setMessage("");
+    setError("");
+
+    if (!form.title || !form.content) {
+      setError("Please enter a blog title and content.");
+      return;
+    }
+
+    setMessage("Your article has been saved as a draft.");
   };
 
   return (
@@ -54,6 +116,7 @@ function CreateBlog() {
             <span className="logo-icon">
               <BookOpen size={21} />
             </span>
+
             <span>
               Dev<span>Blog</span>
             </span>
@@ -74,7 +137,9 @@ function CreateBlog() {
         <div className="create-heading">
           <div>
             <span className="eyebrow">Content Studio</span>
+
             <h1>Create a Blog</h1>
+
             <p>
               Share your knowledge, ideas, and experiences with the
               developer community.
@@ -82,13 +147,10 @@ function CreateBlog() {
           </div>
         </div>
 
-        <form
-          className="blog-form"
-          onSubmit={(event) => handleSubmit(event, "publish")}
-        >
-          {message && (
-            <div className="form-success">
-              {message}
+        <form className="blog-form" onSubmit={handlePublish}>
+          {(message || error) && (
+            <div className={error ? "form-error" : "form-success"}>
+              {error || message}
             </div>
           )}
 
@@ -96,6 +158,7 @@ function CreateBlog() {
             <section className="form-card">
               <div className="form-card-heading">
                 <h2>Article Details</h2>
+
                 <p>Start with the basics of your article.</p>
               </div>
 
@@ -109,6 +172,7 @@ function CreateBlog() {
                   placeholder="Enter an engaging title..."
                   value={form.title}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
 
@@ -121,6 +185,7 @@ function CreateBlog() {
                     name="category"
                     value={form.category}
                     onChange={handleChange}
+                    disabled={loading}
                   >
                     <option>Web Development</option>
                     <option>Artificial Intelligence</option>
@@ -142,6 +207,7 @@ function CreateBlog() {
                       placeholder="react, javascript, web"
                       value={form.tags}
                       onChange={handleChange}
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -160,6 +226,7 @@ function CreateBlog() {
                     placeholder="https://example.com/image.jpg"
                     value={form.image}
                     onChange={handleChange}
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -168,6 +235,7 @@ function CreateBlog() {
             <section className="form-card">
               <div className="form-card-heading">
                 <h2>Article Content</h2>
+
                 <p>Write the content of your blog post.</p>
               </div>
 
@@ -181,6 +249,7 @@ function CreateBlog() {
                   placeholder="Start writing your article..."
                   value={form.content}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
             </section>
@@ -194,15 +263,22 @@ function CreateBlog() {
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={(event) => handleSubmit(event, "draft")}
+              onClick={handleDraft}
+              disabled={loading}
             >
               <Save size={17} />
+
               Save Draft
             </button>
 
-            <button type="submit" className="btn btn-primary">
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
               <Send size={17} />
-              Publish Article
+
+              {loading ? "Publishing..." : "Publish Article"}
             </button>
           </div>
         </form>
