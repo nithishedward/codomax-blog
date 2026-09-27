@@ -10,7 +10,7 @@ import {
   User,
 } from "lucide-react";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://codomax-blog-api.onrender.com";
 
 function Register() {
   const navigate = useNavigate();

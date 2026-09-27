@@ -9,7 +9,7 @@ import {
   Tag,
 } from "lucide-react";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://codomax-blog-api.onrender.com";
 
 function CreateBlog() {
   const [form, setForm] = useState({

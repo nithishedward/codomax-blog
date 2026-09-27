@@ -11,7 +11,7 @@ import {
   LogOut,
 } from "lucide-react";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "https://codomax-blog-api.onrender.com";
 
 function Dashboard() {
   const navigate = useNavigate();
